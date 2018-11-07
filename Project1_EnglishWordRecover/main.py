@@ -1,131 +1,159 @@
 import sys
 import re
 
-def read_dic(filename):
-    fileHandle = open(filename, "r")
-    dic = {}
-    lineList = fileHandle.readlines()
-    for line in lineList:
-        wordList = line.split(" ")
-        for i in range(2, len(wordList)):
-            wordList[1] = wordList[1] + wordList[i]
-            pass
-        #print( wordList[0] + " " + wordList[1] + " " + wordList[2])
-        dic[wordList[0]] = wordList[1]
-        pass
-    return dic
-    pass
+class RecoverWord:
 
-def read_BuguizeVerb(filename):
-    fileHandle = open(filename, "r")
-    buguizeVerb = {}
-    lineList = fileHandle.readlines()
-    for line in lineList:
-        #print(line)
-        line = line.replace("\n", "")
-        wordList = line.split(" ")
-        guoqushiList = wordList[1].split(",")
-        guoqufenciList = wordList[2].split(",")
-        for word in guoqushiList:
-            buguizeVerb[word] = wordList[0]
-            pass
-        for word in guoqufenciList:
-            buguizeVerb[word] = wordList[0]
-            pass
-        pass
-    return buguizeVerb
-    pass
+    __dic = {}
+    __buguizeVerbs = {}
+    __buguizeNones = {}
 
-def read_BuguizeNone(filename):
-    fileHandle = open(filename, "r")
-    lineList = fileHandle.readlines()
-    dic = {}
-    for line in lineList:
-        #print(line)
-        line = line.replace("\n", "")
-        wordList = line.split(" ")
-        '''
-        for i in range(len(wordList)):
-            print(wordList[i])
-            pass
-        print("______")
-        '''
-        #print(wordList[1] + " " + wordList[0])
-        dic[wordList[1]] = wordList[0]
-        pass
-    return dic
-
-
-def other_fuc(test_word, dic):
-    guizes = [["ves$","f"],["ies$","y"], ["es$",""], ["s$",""], ["([a-zA-Z])$1{2}ing$","?"],
-            ["ying$","ie"], ["ing$",""], ["ing$","e"], ["([a-zA-Z])$1{2}ed$","?"], ["ied$","y"],
-            ["ed$",""], ["ed$","e"]]
-    word = ""
-    for i in range(len(guizes)):
-        pattern = guizes[i][0]
-        replace = guizes[i][1]
-        print(pattern)
-        if replace != "?":
-            word = re.sub(pattern, replace, test_word)
-            print("word: " + word)
-            if word in dic:
-                return word
+    def recoverWord(self, test_word):  
+        if test_word in self.__dic:
+            print("词典中匹配到的：")
+            print(test_word + ": " + self.__dic[test_word])
+            #exit()
+    
+        if test_word in self.__buguizeVerbs:
+            print("通过不规则动词还原：")
+            word = self.__buguizeVerbs.get(test_word)
+            print(word + ": " + self.__dic[word])
+            return
+        if test_word in self.__buguizeNones:
+            print("通过不规则名词还原：")
+            word = self.__buguizeNones.get(test_word)
+            print(word + ": " + self.__dic[word])
+            return
+        
+        word = self.__guize_change(test_word)
+        if word:
+            print("通过规则变换：")
+            print(word + ": " + self.__dic[word])
             pass
         else:
-            match_str = re.search(pattern, test_word, re.I)
-            if match_str:
-                print("match: " + match_str.group())
-                first = match_str.group()[0:1]
-                word = re.sub(pattern, first, test_word)
-                if word in dic:
-                    return word
+            print("没有找到")
+            pass
+        return
+
+    def __init__(self, dic_file, verb_file, none_file):
+        self.__setDic(dic_file)
+        self.__setBuguizeVerbs(verb_file)
+        self.__setBuguizeNones(none_file)
+        pass
+
+    def __setDic(self, filename):
+        fileHandle = open(filename, "r")
+        dic = {}
+        lineList = fileHandle.readlines()
+        for line in lineList:
+            wordList = line.split(" ")
+            for i in range(2, len(wordList)):
+                wordList[1] = wordList[1] + wordList[i]
+                pass
+            #print( wordList[0] + " " + wordList[1] + " " + wordList[2])
+            dic[wordList[0]] = wordList[1]
+            pass
+        self.__dic = dic
+
+    def __setBuguizeVerbs(self, filename):
+        fileHandle = open(filename, "r")
+        buguizeVerb = {}
+        lineList = fileHandle.readlines()
+        for line in lineList:
+            #print(line)
+            line = line.replace("\n", "")
+            wordList = line.split(" ")
+            guoqushiList = wordList[1].split(",")
+            guoqufenciList = wordList[2].split(",")
+            for word in guoqushiList:
+                buguizeVerb[word] = wordList[0]
+                pass
+            for word in guoqufenciList:
+                buguizeVerb[word] = wordList[0]
                 pass
             pass
-        pass
-    return None
+        self.__buguizeVerbs = buguizeVerb
 
-#dic = read_dic("dic_ec.txt")
-#for name in dic:
-#    print( name +" " + dic[name][0] + " " + dic[name][1])
-#    pass
-#buguizeVerb = read_BuguizeVerb("IrregularVerbList")
-#for name in buguizeVerb:
-#    print( "key: " + name + " value: " + buguizeVerb[name])
-#    pass
-'''
-buguizeNone = read_buguizeNone("IrregularPluralNouns")
-for name in buguizeNone:
-    print("key: " + name + " value: " + buguizeNone[name])
-    pass
-'''
+    def __setBuguizeNones(self, filename):
+        fileHandle = open(filename, "r")
+        lineList = fileHandle.readlines()
+        dic = {}
+        for line in lineList:
+            #print(line)
+            line = line.replace("\n", "")
+            wordList = line.split(" ")
+            #print(wordList[1] + " " + wordList[0])
+            dic[wordList[1]] = wordList[0]
+            pass
+        self.__buguizeNones = dic
+
+    def __guize_change(self, test_word):
+        tw = test_word
+        if tw[-3:-1] + tw[-1] == "ves":
+            tw = tw[0:-3] + "f"
+            if tw in self.__dic:
+                return tw
+        elif tw[-3:-1] + tw[-1] == "ies":
+            tw = tw[0:-3] + "y"
+            if tw in self.__dic:
+                return tw
+        elif tw[-2] + tw[-1] == "es":
+            tw = tw[0:-2]
+            if tw in self.__dic:
+                return tw
+        elif tw[-1] == "s":
+            tw = tw[0:-1]
+            if tw in self.__dic:
+                return tw
+        elif tw[-3:-1] + tw[-1] == "ing" and tw[-4] == tw[-5]:
+            tw = tw[0:-4]
+            if tw in self.__dic:
+                return tw
+        elif tw[-4:-1] + tw[-1] == "ying":
+            tw = tw[0:-4] + "ie"
+            if tw in self.__dic:
+                return tw
+        elif tw[-3:-1] + tw[-1] == "ing":
+            tw = tw[0:-3]
+            if tw in self.__dic:
+                return tw
+            else:
+                tw = tw[0:-3] + "e"
+                if tw in self.__dic:
+                    return tw
+        elif tw[-2] + tw[-1] == "ed" and tw[-3] == tw[-4]:
+            tw = tw[0:-3]
+            if tw in self.__dic:
+                return tw
+        elif tw[-3:-1] + tw[-1] == "ied":
+            tw = tw[0:-3] + "y"
+            if tw in self.__dic:
+                return tw
+        elif tw[-2] + tw[-1] == "ed":
+            tw = tw[0:-2]
+            if tw in self.__dic:
+                return tw
+            else:
+                tw = tw + "e"
+                if tw in self.__dic:
+                    return tw
+        else:
+            return None
+
+
+
 dic_file = sys.argv[1]
 buguizeV_file = sys.argv[2]
 buguizeN_file = sys.argv[3]
 test_word = sys.argv[4]
 
-dic = read_dic(dic_file)
-buguizeVerbs = read_BuguizeVerb(buguizeV_file)
-buguizeNones = read_BuguizeNone(buguizeN_file)
+wordRecover = RecoverWord(dic_file, buguizeV_file, buguizeN_file)
 
-if test_word in dic:
-    print(test_word + ": " + dic[test_word])
-    exit()
+wordRecover.recoverWord(test_word)
 
-if test_word in buguizeVerbs:
-    word = buguizeverbs.get(test_word)
-    print(word + ": " + dic[word])
-    exit()
-if test_word in buguizeNones:
-    word = buguizeNones.get(test_word)
-    print(word + ": " + dic[word])
-    exit()
-print("other")
-word = other_fuc(test_word, dic)
-if word:
-    print(word + ": " + dic[word])
-    pass
-else:
-    print("not find")
-    pass
-exit()
+#dic = read_dic(dic_file)
+#buguizeVerbs = read_BuguizeVerb(buguizeV_file)
+#buguizeNones = read_BuguizeNone(buguizeN_file)
+
+
+
 
