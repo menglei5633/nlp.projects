@@ -1,0 +1,3 @@
+#bin/bash
+chinese=$1
+python ./main.py ./dic.txt ./guize.txt ./guize1.txt 7 $chinese

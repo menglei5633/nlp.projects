@@ -1,0 +1,3 @@
+#bin/bash
+word=$1
+python ./main.py ./dic_ec.txt ./IrregularVerbList ./IrregularPluralNouns $word
